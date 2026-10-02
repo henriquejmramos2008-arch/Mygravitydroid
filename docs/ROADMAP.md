@@ -14,6 +14,12 @@
 - [x] Keep the original file unchanged; suggestions require manual review.
 - [x] Bump app version to 0.2.0 and verify the APK build.
 
+## 0.3 — Project folder context
+- [x] Choose a project folder with Android's Storage Access Framework.
+- [x] Browse detected source/text files and explicitly select up to 8.
+- [x] Limit project context to 64 KB; exclude hidden and likely secret files.
+- [x] Bump app version to 0.3.0 and verify the APK build.
+
 ## Next — Reviewable project edits
 
 - Let the user choose a project folder with Android's Storage Access Framework.

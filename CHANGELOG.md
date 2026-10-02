@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+- Choose a project folder and explicitly select up to 8 source files.
+- Include selected files as model context with a 64 KB combined limit.
+- Filter hidden files and likely secret/credential filenames.
+- Increase Android versionCode to 3 and versionName to 0.3.0.
+
 ## 0.2.0
 
 - Add a file attachment control for text, JSON and XML source files.

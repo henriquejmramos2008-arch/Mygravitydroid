@@ -2,15 +2,16 @@
 
 An Android-first AI coding assistant, built so the project can be edited from GitHub on a phone and built with GitHub Actions.
 
-## v0.2.0 — project file context
+## v0.3.0 — project file context
 
 - Native Android chat in Kotlin and Jetpack Compose.
-- Attach one text source file (up to 16 KB) to a chat for analysis and coding suggestions.
+- Choose a project folder and select up to 8 code/text files (64 KB total) as chat context.
+- Keep the single-file attachment option for quick questions (16 KB maximum).
 - OpenAI-compatible model settings for hosted providers and local servers.
 - API keys stay in app memory for the current session.
 - GitHub Actions builds and publishes a debug APK artifact for each push to `main`.
 
-The app can read the text file you choose and include it in the request to your configured model. It does not edit or overwrite the original file, run commands, or scan other files yet. Review suggested code yourself before applying it.
+The app can read the text file you choose and include it in the request to your configured model. Only files you explicitly select are read. The app does not edit or overwrite project files or run commands. Review suggested code yourself before applying it.
 
 ## Edit and build from an Android phone
 
