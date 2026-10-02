@@ -27,4 +27,4 @@ API keys are held only in app memory for the current session and are not stored 
 
 ## Toolchain
 
-JDK 17, Gradle 9.6.0, Android Gradle Plugin 9.4.0, Kotlin 2.4.10 Compose compiler, Android API 37.
+JDK 17, Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin 2.2.21, Android API 36.
