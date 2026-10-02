@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+- Increase project selection to 40 files and combined context to 256 KB.
+- Expand project scanning to 500 candidate files and 4,000 visited entries.
+- Increase Android versionCode to 4 and versionName to 0.4.0.
+
 ## 0.3.0
 - Choose a project folder and explicitly select up to 8 source files.
 - Include selected files as model context with a 64 KB combined limit.

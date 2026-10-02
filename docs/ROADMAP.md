@@ -20,6 +20,12 @@
 - [x] Limit project context to 64 KB; exclude hidden and likely secret files.
 - [x] Bump app version to 0.3.0 and verify the APK build.
 
+## 0.4 — Larger project context
+- [x] Increase selection to 40 files and combined context to 256 KB.
+- [x] Scan larger project trees (up to 500 matching files / 4,000 visited entries).
+- [x] Explain that provider/model context limits may require a smaller selection.
+- [x] Bump app version to 0.4.0 and verify the APK build.
+
 ## Next — Reviewable project edits
 
 - Let the user choose a project folder with Android's Storage Access Framework.

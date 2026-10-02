@@ -51,8 +51,8 @@ data class ChatMessage(
 )
 
 private const val MAX_ATTACHMENT_BYTES = 16 * 1024
-private const val MAX_PROJECT_CONTEXT_BYTES = 64 * 1024
-private const val MAX_PROJECT_FILES = 8
+private const val MAX_PROJECT_CONTEXT_BYTES = 256 * 1024
+private const val MAX_PROJECT_FILES = 40
 private val CODE_EXTENSIONS = setOf("kt", "java", "xml", "gradle", "kts", "json", "md", "txt", "yaml", "yml", "properties", "toml", "dart", "ts", "tsx", "js", "jsx", "html", "css", "py", "sh", "c", "h", "cpp", "hpp")
 data class ProjectFile(val uri: Uri, val name: String)
 
@@ -235,7 +235,7 @@ private fun GravityApp(context: Context) {
                 title = { Text("Ficheiros do projeto") },
                 text = {
                     Column {
-                        Text("Seleciona até $MAX_PROJECT_FILES ficheiros. Só estes serão enviados ao modelo; limite total: 64 KB.", color = Muted, fontSize = 12.sp)
+                        Text("Seleciona até $MAX_PROJECT_FILES ficheiros. Só estes serão enviados ao modelo; limite combinado: 256 KB.", color = Muted, fontSize = 12.sp)
                         Spacer(Modifier.height(8.dp))
                         LazyColumn(Modifier.heightIn(max = 320.dp)) {
                             items(projectFiles, key = { it.uri.toString() }) { file ->
@@ -416,7 +416,7 @@ private fun scanProjectFiles(context: Context, treeUri: Uri): List<ProjectFile> 
     val found = mutableListOf<ProjectFile>()
     var visited = 0
     fun visit(parentId: String, depth: Int) {
-        if (depth > 8 || found.size >= 100 || visited >= 800) return
+        if (depth > 12 || found.size >= 500 || visited >= 4000) return
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentId)
         context.contentResolver.query(
             children,
@@ -426,7 +426,7 @@ private fun scanProjectFiles(context: Context, treeUri: Uri): List<ProjectFile> 
             val idCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
             val nameCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
             val mimeCol = cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_MIME_TYPE)
-            while (cursor.moveToNext() && found.size < 100 && visited < 800) {
+            while (cursor.moveToNext() && found.size < 500 && visited < 4000) {
                 visited++
                 val id = cursor.getString(idCol) ?: continue
                 val name = cursor.getString(nameCol) ?: continue
@@ -444,14 +444,14 @@ private fun scanProjectFiles(context: Context, treeUri: Uri): List<ProjectFile> 
 }
 
 private fun readDocumentText(context: Context, uri: Uri, remainingBytes: Int): String {
-    require(remainingBytes > 0) { "O contexto selecionado excede o limite total de 64 KB." }
+    require(remainingBytes > 0) { "O contexto selecionado excede o limite combinado de 256 KB." }
     val output = ByteArrayOutputStream()
     context.contentResolver.openInputStream(uri)?.use { input ->
         val buffer = ByteArray(4096)
         while (true) {
             val count = input.read(buffer)
             if (count < 0) break
-            require(output.size() + count <= remainingBytes) { "O contexto selecionado excede o limite total de 64 KB." }
+            require(output.size() + count <= remainingBytes) { "O contexto selecionado excede o limite combinado de 256 KB." }
             output.write(buffer, 0, count)
         }
     } ?: throw IllegalArgumentException("Não foi possível abrir um ficheiro do projeto.")
