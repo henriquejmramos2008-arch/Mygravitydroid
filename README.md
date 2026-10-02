@@ -2,14 +2,15 @@
 
 An Android-first AI coding assistant, built so the project can be edited from GitHub on a phone and built with GitHub Actions.
 
-## First version
+## v0.2.0 — project file context
 
-- Native Android app in Kotlin and Jetpack Compose.
-- OpenAI-compatible chat API settings for hosted providers and local servers.
-- A coding assistant chat interface with a project-focused system prompt.
-- GitHub Actions builds a debug APK and attaches it to each workflow run.
+- Native Android chat in Kotlin and Jetpack Compose.
+- Attach one text source file (up to 16 KB) to a chat for analysis and coding suggestions.
+- OpenAI-compatible model settings for hosted providers and local servers.
+- API keys stay in app memory for the current session.
+- GitHub Actions builds and publishes a debug APK artifact for each push to `main`.
 
-This first version is chat-only. It does not yet browse, edit, or run project files, and it does not execute terminal commands. Those capabilities are planned as explicit, reviewable steps.
+The app can read the text file you choose and include it in the request to your configured model. It does not edit or overwrite the original file, run commands, or scan other files yet. Review suggested code yourself before applying it.
 
 ## Edit and build from an Android phone
 
@@ -17,13 +18,13 @@ This first version is chat-only. It does not yet browse, edit, or run project fi
 2. Edit Kotlin or configuration files with the pencil button, or open the repository in github.dev.
 3. Commit changes to `main`.
 4. Open **Actions** and select **Build Android APK**.
-5. Download the `MyGravityDroid-debug` artifact from a successful run.
+5. Download the `MyGravityDroid-debug` artifact from the latest successful run.
 
 ## Configure a model
 
-In the app, open **Settings** and enter an OpenAI-compatible API base URL, model name, and (if required) API key. Example base URL: `https://api.openai.com/v1`. For a local llama.cpp server, use a reachable URL such as `http://192.168.1.20:8080/v1`; the phone and server must be able to reach each other.
+In the app, open **Definições** and enter an OpenAI-compatible API base URL, model name, and (if required) API key. Example base URL: `https://api.openai.com/v1`. For a local llama.cpp server, use a reachable URL such as `http://192.168.1.20:8080/v1`; the phone and server must be able to reach each other.
 
-API keys are held only in app memory for the current session and are not stored in this repository. Do not commit keys or credentials. For remote providers, prefer HTTPS. HTTP is enabled to support local development servers.
+Never put API keys in this repository or source code. For remote providers, use HTTPS. HTTP is enabled for local development servers.
 
 ## Toolchain
 
