@@ -206,12 +206,13 @@ private fun sendMessage(
         return
     }
     messages.add(ChatMessage("user", text))
+    val history = messages.toList()
     clearDraft()
     setLoading(true)
     scope.launch {
         try {
             val reply = withContext(Dispatchers.IO) {
-                requestChat(baseUrl, model, apiKey, messages.filter { it.role == "user" || it.role == "assistant" }.toList())
+                requestChat(baseUrl, model, apiKey, history)
             }
             messages.add(ChatMessage("assistant", reply))
         } catch (e: Exception) {
