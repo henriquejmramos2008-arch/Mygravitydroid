@@ -2,16 +2,20 @@
 
 An Android-first AI coding assistant, built so the project can be edited from GitHub on a phone and built with GitHub Actions.
 
-## v0.4.0 — larger project context
+## v0.5.0 — three local AI roles
 
 - Native Android chat in Kotlin and Jetpack Compose.
+- Three configurable roles: fast/general, coding model, and Auto Router/planner.
+- Auto sends normal questions to the general model and routes coding tasks through planner then coder, sequentially.
+- Three configurable model roles: fast/general, coding specialist, and Auto Router/planner.
+- Auto mode routes ordinary questions to the fast model and sends coding tasks through the planner then coder, sequentially.
 - Choose a project folder and select up to 40 code/text files (256 KB total) as chat context.
 - Keep the single-file attachment option for quick questions (16 KB maximum).
-- OpenAI-compatible model settings for hosted providers and local servers.
+- Configurable OpenAI-compatible local model endpoints and model names for each role.
 - API keys stay in app memory for the current session.
 - GitHub Actions builds and publishes a debug APK artifact for each push to `main`.
 
-The app can read only the files you explicitly select and include them in requests to your configured model. The combined context limit is 256 KB, including a single-file attachment. Model context limits vary; if a request is too large, select fewer or smaller files. Only files you explicitly select are read. The app does not edit or overwrite project files or run commands. Review suggested code yourself before applying it.
+The app calls configured OpenAI-compatible local endpoints and can read only the files you explicitly select and include them in requests to your configured model. The combined context limit is 256 KB, including a single-file attachment. Model context limits vary; if a request is too large, select fewer or smaller files. Only files you explicitly select are read. The app does not edit or overwrite project files or run commands. Models are not bundled in the APK; a local model server must be running. A normal llama-server serves one model per process, so a model-switching gateway is needed to reuse phone RAM across all three roles. The three local models are not bundled in the APK; a local server or model gateway must be running. A standard llama-server serves one model per process. Review suggested code yourself before applying it.
 
 ## Edit and build from an Android phone
 

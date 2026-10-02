@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0
+- Add three local model roles: fast/general, coding, and Auto Router/planner.
+- Add Auto, Rápido, and Programar modes with sequential planning and coding.
+- Increase Android versionCode to 5 and versionName to 0.5.0.
+
+## 0.5.0
+- Add configurable fast/general, coding, and Auto Router model roles.
+- Add Auto routing and sequential planner-to-coder flow.
+- Increase Android versionCode to 5 and versionName to 0.5.0.
+
 ## 0.4.0
 - Increase project selection to 40 files and combined context to 256 KB.
 - Expand project scanning to 500 candidate files and 4,000 visited entries.

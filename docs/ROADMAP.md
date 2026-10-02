@@ -26,6 +26,18 @@
 - [x] Explain that provider/model context limits may require a smaller selection.
 - [x] Bump app version to 0.4.0 and verify the APK build.
 
+## 0.5 — Three local AI roles
+- [x] Configure separate endpoints and model names for fast/general, coder, and planner/router.
+- [x] Add Auto, Rápido, and Programar modes.
+- [x] Route coding requests through the planner and coder sequentially.
+- [x] Bump app version to 0.5.0 and verify the APK build.
+
+## 0.5 — Three local AI roles
+- [x] Configure separate endpoints and model IDs for general, coding, and planner/router roles.
+- [x] Add Auto, Rápido, and Programar modes.
+- [x] Route code tasks through the planner then coder one at a time.
+- [x] Bump version to 0.5.0 and verify the APK.
+
 ## Next — Reviewable project edits
 
 - Let the user choose a project folder with Android's Storage Access Framework.
