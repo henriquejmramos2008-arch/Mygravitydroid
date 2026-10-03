@@ -1,36 +1,23 @@
 # Changelog
 
-## 0.5.0
-- Add three local model roles: fast/general, coding, and Auto Router/planner.
-- Add Auto, Rápido, and Programar modes with sequential planning and coding.
-- Increase Android versionCode to 5 and versionName to 0.5.0.
+## 0.6.0
+- Reduzir chamadas no Auto: o Router classifica e planeia em conjunto.
+- Enviar o pedido ao modelo final apenas uma vez após o Router.
+- Documentar o router dinâmico do llama.cpp e o limite de modelos residentes.
+- Android versionCode 6; versionName 0.6.0.
 
 ## 0.5.0
-- Add configurable fast/general, coding, and Auto Router model roles.
-- Add Auto routing and sequential planner-to-coder flow.
-- Increase Android versionCode to 5 and versionName to 0.5.0.
+- Adicionar perfis locais geral, programador e Auto Router/planeador.
+- Adicionar modos Auto, Rápido e Programar.
 
 ## 0.4.0
-- Increase project selection to 40 files and combined context to 256 KB.
-- Expand project scanning to 500 candidate files and 4,000 visited entries.
-- Increase Android versionCode to 4 and versionName to 0.4.0.
+- Aumentar o contexto do projeto para 40 ficheiros e 256 KB.
 
 ## 0.3.0
-- Choose a project folder and explicitly select up to 8 source files.
-- Include selected files as model context with a 64 KB combined limit.
-- Filter hidden files and likely secret/credential filenames.
-- Increase Android versionCode to 3 and versionName to 0.3.0.
+- Escolher pasta e selecionar ficheiros de projeto.
 
 ## 0.2.0
-
-- Add a file attachment control for text, JSON and XML source files.
-- Include the selected file (up to 16 KB) as context for coding questions.
-- Show the attachment name in chat and leave the original file unchanged.
-- Keep API keys in memory only.
-- Increase Android versionCode to 2 and versionName to 0.2.0.
+- Anexar um ficheiro de texto ao chat.
 
 ## 0.1.0
-
-- Add the initial Android coding-assistant chat.
-- Add OpenAI-compatible model settings.
-- Build debug APKs with GitHub Actions.
+- Criar a base do chat Android e o build por Actions.

@@ -1,36 +1,33 @@
 # MyGravityDroid
 
-An Android-first AI coding assistant, built so the project can be edited from GitHub on a phone and built with GitHub Actions.
+Assistente de programação Android, editável pelo GitHub no telemóvel e compilado pelo GitHub Actions.
 
-## v0.5.0 — three local AI roles
+## v0.6.0 — Auto Router mais rápido
 
-- Native Android chat in Kotlin and Jetpack Compose.
-- Three configurable roles: fast/general, coding model, and Auto Router/planner.
-- Auto sends normal questions to the general model and routes coding tasks through planner then coder, sequentially.
-- Three configurable model roles: fast/general, coding specialist, and Auto Router/planner.
-- Auto mode routes ordinary questions to the fast model and sends coding tasks through the planner then coder, sequentially.
-- Choose a project folder and select up to 40 code/text files (256 KB total) as chat context.
-- Keep the single-file attachment option for quick questions (16 KB maximum).
-- Configurable OpenAI-compatible local model endpoints and model names for each role.
-- API keys stay in app memory for the current session.
-- GitHub Actions builds and publishes a debug APK artifact for each push to `main`.
+- Três perfis locais: Rápido/Geral, Programador e Auto Router/Planeador.
+- **Rápido** chama diretamente o modelo geral.
+- **Auto** pede ao Router classificação e plano numa única chamada; depois chama apenas o modelo final.
+- **Programar** pede um plano e depois chama o modelo programador.
+- Seleciona uma pasta e até 40 ficheiros (máximo combinado de 256 KB).
+- A app não altera ficheiros nem executa comandos. Os modelos não estão incluídos no APK.
 
-The app calls configured OpenAI-compatible local endpoints and can read only the files you explicitly select and include them in requests to your configured model. The combined context limit is 256 KB, including a single-file attachment. Model context limits vary; if a request is too large, select fewer or smaller files. Only files you explicitly select are read. The app does not edit or overwrite project files or run commands. Models are not bundled in the APK; a local model server must be running. A normal llama-server serves one model per process, so a model-switching gateway is needed to reuse phone RAM across all three roles. The three local models are not bundled in the APK; a local server or model gateway must be running. A standard llama-server serves one model per process. Review suggested code yourself before applying it.
+### Router local com llama.cpp
 
-## Edit and build from an Android phone
+Usa uma versão atual do llama.cpp com modo router. Inicia llama-server sem -m nem -hf, configura a pasta de modelos e limita os carregados em simultâneo. Exemplo para começar no telemóvel:
 
-1. Open this repository in GitHub.
-2. Edit Kotlin or configuration files with the pencil button, or open the repository in github.dev.
-3. Commit changes to `main`.
-4. Open **Actions** and select **Build Android APK**.
-5. Download the `MyGravityDroid-debug` artifact from the latest successful run.
+    llama-server --models-dir ~/models --models-max 2 --host 127.0.0.1 --port 8080
 
-## Configure a model
+Em Definições → Modelos locais, usa http://127.0.0.1:8080/v1 nos perfis e define em cada um o nome exato que o router apresenta em /models. O modo router carrega modelos a pedido. A primeira utilização de um modelo pode demorar enquanto carrega; manter mais modelos na RAM pode tornar as trocas seguintes mais rápidas, mas usa mais memória. No Redmi com 8 GB, começa com --models-max 2 e aumenta só se continuar estável.
 
-In the app, open **Definições** and enter an OpenAI-compatible API base URL, model name, and (if required) API key. Example base URL: `https://api.openai.com/v1`. For a local llama.cpp server, use a reachable URL such as `http://192.168.1.20:8080/v1`; the phone and server must be able to reach each other.
+O llama-server e os modelos têm de estar a correr no próprio telemóvel para 127.0.0.1 funcionar. Para um servidor no PC, usa o IP local do PC em vez de 127.0.0.1.
 
-Never put API keys in this repository or source code. For remote providers, use HTTPS. HTTP is enabled for local development servers.
+## Projeto e privacidade
 
-## Toolchain
+Só os ficheiros que selecionares são lidos e enviados ao modelo. A chave da API fica em memória durante a sessão. Para modelos locais não é necessária uma chave. Revê as sugestões antes de as aplicar.
 
-JDK 17, Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin 2.2.21, Android API 36.
+## Editar e compilar pelo Android
+
+1. Abre este repositório no GitHub e edita os ficheiros ou usa github.dev.
+2. Faz commit para main.
+3. Em Actions, abre Build Android APK.
+4. Descarrega o artefacto MyGravityDroid-debug da compilação bem-sucedida.
