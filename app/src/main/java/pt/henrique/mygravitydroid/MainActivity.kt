@@ -93,6 +93,8 @@ private fun GravityApp(context: Context) {
     var selectedProjectUris by remember { mutableStateOf<Set<String>>(emptySet()) }
     var projectStatus by remember { mutableStateOf<String?>(null) }
     var showProjectFiles by remember { mutableStateOf(false) }
+    var projectSearchQuery by remember { mutableStateOf("") }
+    var lastContextBytes by remember { mutableIntStateOf(0) }
     var proposalMode by remember { mutableStateOf(false) }
     var pendingEdits by remember { mutableStateOf<List<PendingEdit>>(emptyList()) }
     var pendingEditIndex by remember { mutableStateOf(0) }
@@ -104,6 +106,7 @@ private fun GravityApp(context: Context) {
         if (uri != null) {
             projectStatus = "A analisar pasta…"
             selectedProjectUris = emptySet()
+            projectSearchQuery = ""
             scope.launch {
                 try {
                     try {
@@ -287,7 +290,7 @@ private fun GravityApp(context: Context) {
                         if (!loading) sendMessage(
                             assistantMode, generalUrl, generalModel, coderUrl, coderModel, plannerUrl, plannerModel, apiKey, draft, attachedName, attachedContent, projectFiles.filter { it.uri.toString() in selectedProjectUris }, proposalMode, context, messages,
                             { draft = ""; attachedName = null; attachedContent = null },
-                            { loading = it }, { edits -> pendingEdits = edits; pendingEditIndex = 0 }, scope
+                            { loading = it }, { edits -> pendingEdits = edits; pendingEditIndex = 0 }, { lastContextBytes = it }, scope
                         )
                     })
                 )
@@ -295,7 +298,7 @@ private fun GravityApp(context: Context) {
                     onClick = { sendMessage(
                             assistantMode, generalUrl, generalModel, coderUrl, coderModel, plannerUrl, plannerModel, apiKey, draft, attachedName, attachedContent, projectFiles.filter { it.uri.toString() in selectedProjectUris }, proposalMode, context, messages,
                             { draft = ""; attachedName = null; attachedContent = null },
-                            { loading = it }, { edits -> pendingEdits = edits; pendingEditIndex = 0 }, scope
+                            { loading = it }, { edits -> pendingEdits = edits; pendingEditIndex = 0 }, { lastContextBytes = it }, scope
                         ) },
                     enabled = !loading && draft.isNotBlank(), shape = CircleShape, modifier = Modifier.padding(bottom = 5.dp)
                 ) { Text("↑", fontSize = 20.sp) }
@@ -311,10 +314,31 @@ private fun GravityApp(context: Context) {
                 title = { Text("Ficheiros do projeto") },
                 text = {
                     Column {
-                        Text("Seleciona até $MAX_PROJECT_FILES ficheiros. Só estes entram no contexto (até 8 MB; o modelo pode ter um limite inferior).", color = Muted, fontSize = 12.sp)
+                        OutlinedTextField(
+                            value = projectSearchQuery,
+                            onValueChange = { projectSearchQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Pesquisar ficheiros ou extensões…") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp)
+                        )
                         Spacer(Modifier.height(8.dp))
-                        LazyColumn(Modifier.heightIn(max = 320.dp)) {
-                            items(projectFiles, key = { it.uri.toString() }) { file ->
+                        Text(
+                            "Selecionados: ${selectedProjectUris.size}/$MAX_PROJECT_FILES · último contexto: ${formatBytes(lastContextBytes)} / 8 MB",
+                            color = Muted, fontSize = 11.sp
+                        )
+                        Text("A janela do modelo local pode ser menor.", color = Muted.copy(alpha = 0.75f), fontSize = 10.sp)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            TextButton(onClick = {
+                                val visible = projectFiles.filter { it.name.contains(projectSearchQuery.trim(), ignoreCase = true) }
+                                val remaining = (MAX_PROJECT_FILES - selectedProjectUris.size).coerceAtLeast(0)
+                                selectedProjectUris = selectedProjectUris + visible.asSequence()
+                                    .map { it.uri.toString() }.filter { it !in selectedProjectUris }.take(remaining).toSet()
+                            }) { Text("Selecionar resultados", color = Accent, fontSize = 11.sp) }
+                            TextButton(onClick = { selectedProjectUris = emptySet() }) { Text("Limpar tudo", color = Muted, fontSize = 11.sp) }
+                        }
+                        LazyColumn(Modifier.heightIn(max = 300.dp)) {
+                            items(projectFiles.filter { it.name.contains(projectSearchQuery.trim(), ignoreCase = true) }, key = { it.uri.toString() }) { file ->
                                 val key = file.uri.toString()
                                 val checked = key in selectedProjectUris
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -469,7 +493,7 @@ private fun sendMessage(
     selectedFileName: String?, selectedFileContent: String?,
     selectedProjectFiles: List<ProjectFile>, proposalMode: Boolean, context: Context,
     messages: MutableList<ChatMessage>, clearDraft: () -> Unit,
-    setLoading: (Boolean) -> Unit, setPendingEdits: (List<PendingEdit>) -> Unit, scope: kotlinx.coroutines.CoroutineScope
+    setLoading: (Boolean) -> Unit, setPendingEdits: (List<PendingEdit>) -> Unit, setContextUsage: (Int) -> Unit, scope: kotlinx.coroutines.CoroutineScope
 ) {
     val text = draft.trim()
     if (text.isEmpty()) return
@@ -499,6 +523,7 @@ private fun sendMessage(
                 output
             }
             val originals = projectContents.drop(if (selectedFileName != null && selectedFileContent != null) 1 else 0).toMap()
+            setContextUsage(projectContents.sumOf { it.second.toByteArray(Charsets.UTF_8).size })
             val displayNames = projectContents.joinToString { it.first }
             val displayText = if (displayNames.isNotBlank()) "$text\n\n📎 $displayNames" else text
             val promptContent = buildString {
@@ -584,6 +609,13 @@ private fun requestChat(baseUrl: String, model: String, apiKey: String, history:
     } finally {
         connection.disconnect()
     }
+}
+
+
+private fun formatBytes(bytes: Int): String = when {
+    bytes < 1024 -> "$bytes B"
+    bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+    else -> "${bytes / (1024 * 1024)} MB"
 }
 
 
