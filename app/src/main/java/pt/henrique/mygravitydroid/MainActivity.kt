@@ -60,6 +60,7 @@ private const val MAX_PROJECT_FILES = 40
 private val CODE_EXTENSIONS = setOf("kt", "java", "xml", "gradle", "kts", "json", "md", "txt", "yaml", "yml", "properties", "toml", "dart", "ts", "tsx", "js", "jsx", "html", "css", "py", "sh", "c", "h", "cpp", "hpp")
 data class ProjectFile(val uri: Uri, val name: String)
 data class PendingEdit(val file: ProjectFile, val before: String, val after: String, val summary: String)
+private data class DiffRow(val marker: String, val line: String, val kind: Int)
 private const val MAX_EDIT_FILE_BYTES = 64 * 1024
 
 class MainActivity : ComponentActivity() {
@@ -312,11 +313,9 @@ private fun GravityApp(context: Context) {
                     Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
                         Text(editToReview.file.name + " · " + editToReview.summary, color = Muted, fontSize = 12.sp)
                         Spacer(Modifier.height(10.dp))
-                        Text("ANTES", color = Color(0xFFFF8A80), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text(editToReview.before, color = Color(0xFFF1F1F3), fontSize = 11.sp, lineHeight = 15.sp, fontFamily = FontFamily.Monospace)
-                        Spacer(Modifier.height(12.dp))
-                        Text("DEPOIS", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text(editToReview.after, color = Color(0xFFF1F1F3), fontSize = 11.sp, lineHeight = 15.sp, fontFamily = FontFamily.Monospace)
+                        Text("DIFF LINHA A LINHA", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(6.dp))
+                        DiffPreview(editToReview.before, editToReview.after)
                         Spacer(Modifier.height(8.dp))
                         Text("Só este ficheiro será gravado se tocares em Aprovar e guardar. O conteúdo é verificado novamente antes da escrita.", color = Muted, fontSize = 11.sp)
                     }
@@ -676,4 +675,71 @@ private fun readTextFile(context: Context, uri: Uri): Pair<String, String> {
         "Este parece ser um ficheiro binário; anexa um ficheiro de texto."
     }
     return name to content
+}
+
+@Composable
+private fun DiffPreview(before: String, after: String) {
+    val rows = remember(before, after) { buildLineDiff(before, after) }
+    Column(
+        Modifier.fillMaxWidth().heightIn(max = 330.dp).verticalScroll(rememberScrollState())
+            .background(Color(0xFF111318), RoundedCornerShape(10.dp)).padding(vertical = 6.dp)
+    ) {
+        rows.forEach { row ->
+            val foreground = when (row.kind) {
+                1 -> Color(0xFFB6F2BD)
+                -1 -> Color(0xFFFFB4AB)
+                else -> Color(0xFFD2D5DC)
+            }
+            val fill = when (row.kind) {
+                1 -> Color(0x332B8A45)
+                -1 -> Color(0x33B3261E)
+                else -> Color.Transparent
+            }
+            Row(Modifier.fillMaxWidth().background(fill).padding(horizontal = 7.dp, vertical = 1.dp)) {
+                Text(row.marker, color = foreground, fontSize = 11.sp, fontFamily = FontFamily.Monospace, modifier = Modifier.width(18.dp))
+                Text(row.line.ifEmpty { " " }, color = foreground, fontSize = 11.sp, lineHeight = 15.sp, fontFamily = FontFamily.Monospace)
+            }
+        }
+    }
+}
+
+private fun buildLineDiff(before: String, after: String): List<DiffRow> {
+    val oldLines = before.split("\\n")
+    val newLines = after.split("\\n")
+    val n = oldLines.size
+    val m = newLines.size
+    if (n.toLong() * m.toLong() > 120_000L) {
+        var prefix = 0
+        while (prefix < n && prefix < m && oldLines[prefix] == newLines[prefix]) prefix++
+        var suffix = 0
+        while (suffix < n - prefix && suffix < m - prefix &&
+            oldLines[n - 1 - suffix] == newLines[m - 1 - suffix]) suffix++
+        val result = mutableListOf<DiffRow>()
+        oldLines.take(prefix).forEach { result.add(DiffRow(" ", it, 0)) }
+        if (prefix > 0) result.add(DiffRow("…", "Ficheiro grande: diff resumido ao bloco alterado", 0))
+        oldLines.subList(prefix, n - suffix).forEach { result.add(DiffRow("-", it, -1)) }
+        newLines.subList(prefix, m - suffix).forEach { result.add(DiffRow("+", it, 1)) }
+        if (suffix > 0) newLines.takeLast(suffix).forEach { result.add(DiffRow(" ", it, 0)) }
+        return result
+    }
+    val lcs = Array(n + 1) { IntArray(m + 1) }
+    for (i in n - 1 downTo 0) for (j in m - 1 downTo 0) {
+        lcs[i][j] = if (oldLines[i] == newLines[j]) 1 + lcs[i + 1][j + 1]
+            else maxOf(lcs[i + 1][j], lcs[i][j + 1])
+    }
+    val rows = mutableListOf<DiffRow>()
+    var i = 0
+    var j = 0
+    while (i < n || j < m) {
+        when {
+            i < n && j < m && oldLines[i] == newLines[j] -> {
+                rows.add(DiffRow(" ", oldLines[i], 0)); i++; j++
+            }
+            j < m && (i == n || lcs[i][j + 1] >= lcs[i + 1][j]) -> {
+                rows.add(DiffRow("+", newLines[j], 1)); j++
+            }
+            else -> { rows.add(DiffRow("-", oldLines[i], -1)); i++ }
+        }
+    }
+    return rows
 }
