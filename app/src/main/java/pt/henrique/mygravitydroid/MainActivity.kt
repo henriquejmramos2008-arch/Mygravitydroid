@@ -302,6 +302,7 @@ private fun GravityApp(context: Context) {
             }
         }
         }
+        }
 
 
         if (showProjectFiles) {

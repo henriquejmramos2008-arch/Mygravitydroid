@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.1
+- Correção da estrutura do painel e compilação Android.
+
 ## 0.9.0
 - Layout renovado com seletor de modos e painel de composição.
 - Novo ícone adaptativo do MyGravityDroid.

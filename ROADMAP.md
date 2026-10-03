@@ -13,7 +13,7 @@
 - [x] Diff linha a linha com destaque para adições e remoções.
 - [x] Resumo para ficheiros grandes.
 
-## 0.9.0 — Experiência e projetos grandes
+## 0.9.1 — Experiência e projetos grandes
 - [x] Novo layout, seletor de modo e identidade visual.
 - [x] Ícone adaptativo do Android.
 - [x] Aumentar limites de anexos, ficheiros editáveis e contexto selecionado.

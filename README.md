@@ -2,7 +2,7 @@
 
 Assistente Android para conversar e programar com modelos locais compatíveis com a API OpenAI. O projeto é desenvolvido no GitHub e o APK debug é compilado pelo GitHub Actions.
 
-## Versão 0.9.0
+## Versão 0.9.1
 - Layout renovado, seletor rápido Auto/Rápido/Programar e novo ícone adaptativo.
 - Contexto de projeto até 8 MB e 200 ficheiros.
 - Anexos individuais e propostas de edição até 2 MB por ficheiro.
