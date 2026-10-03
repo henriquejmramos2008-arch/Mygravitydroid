@@ -1,33 +1,27 @@
 # MyGravityDroid
 
-Assistente de programação Android, editável pelo GitHub no telemóvel e compilado pelo GitHub Actions.
+Assistente Android para conversar e programar com modelos locais compatíveis com a API OpenAI. O projeto é desenvolvido no GitHub e o APK debug é compilado pelo GitHub Actions.
 
-## v0.6.0 — Auto Router mais rápido
+## Versão 0.7.0
 
-- Três perfis locais: Rápido/Geral, Programador e Auto Router/Planeador.
-- **Rápido** chama diretamente o modelo geral.
-- **Auto** pede ao Router classificação e plano numa única chamada; depois chama apenas o modelo final.
-- **Programar** pede um plano e depois chama o modelo programador.
-- Seleciona uma pasta e até 40 ficheiros (máximo combinado de 256 KB).
-- A app não altera ficheiros nem executa comandos. Os modelos não estão incluídos no APK.
+- Três perfis locais: Rápido, Programar e Auto.
+- O Auto Router classifica e planeia o pedido antes de o encaminhar.
+- Seleciona ficheiros de projeto para usar como contexto.
+- Ativa Preparar diff para aprovação para pedir propostas de código. Cada ficheiro é revisto antes/depois e só é gravado ao tocar em Aprovar e guardar.
+- Cada ficheiro é aprovado individualmente. A app confirma que o conteúdo não mudou entretanto e verifica a gravação.
+- Limites: 64 KiB por ficheiro editado; contexto 256 KiB e até 40 ficheiros.
+- Anexos são apenas contexto de leitura.
 
-### Router local com llama.cpp
+## Modelos locais
 
-Usa uma versão atual do llama.cpp com modo router. Inicia llama-server sem -m nem -hf, configura a pasta de modelos e limita os carregados em simultâneo. Exemplo para começar no telemóvel:
+Em Definições configura o endpoint, o nome do modelo para cada perfil e, se necessário, a chave da API. Para execução local podes usar um servidor compatível com OpenAI no próprio telemóvel ou na rede local. A app não descarrega nem inclui modelos; tens de iniciar o servidor e indicar um endereço acessível pelo Android.
 
-    llama-server --models-dir ~/models --models-max 2 --host 127.0.0.1 --port 8080
+Os três perfis podem apontar para o mesmo servidor. O Auto Router e o modelo final são pedidos sequenciais; manter modelos carregados no servidor ajuda a reduzir a demora de troca.
 
-Em Definições → Modelos locais, usa http://127.0.0.1:8080/v1 nos perfis e define em cada um o nome exato que o router apresenta em /models. O modo router carrega modelos a pedido. A primeira utilização de um modelo pode demorar enquanto carrega; manter mais modelos na RAM pode tornar as trocas seguintes mais rápidas, mas usa mais memória. No Redmi com 8 GB, começa com --models-max 2 e aumenta só se continuar estável.
+## Criar o APK
 
-O llama-server e os modelos têm de estar a correr no próprio telemóvel para 127.0.0.1 funcionar. Para um servidor no PC, usa o IP local do PC em vez de 127.0.0.1.
+Cada versão incrementa versionCode e versionName. O workflow Android CI compila o APK debug quando há alterações na branch principal. Descarrega-o em Actions, na execução concluída, em Artifacts.
 
-## Projeto e privacidade
+## Segurança
 
-Só os ficheiros que selecionares são lidos e enviados ao modelo. A chave da API fica em memória durante a sessão. Para modelos locais não é necessária uma chave. Revê as sugestões antes de as aplicar.
-
-## Editar e compilar pelo Android
-
-1. Abre este repositório no GitHub e edita os ficheiros ou usa github.dev.
-2. Faz commit para main.
-3. Em Actions, abre Build Android APK.
-4. Descarrega o artefacto MyGravityDroid-debug da compilação bem-sucedida.
+A app só propõe alterações aos ficheiros de projeto selecionados. Não executa comandos nem grava sem aprovação explícita. As permissões dependem do fornecedor de documentos/pasta escolhido no Android. Mantém cópias de segurança do projeto.
