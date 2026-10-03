@@ -1,18 +1,19 @@
 # MyGravityDroid
 
-Assistente Android para conversar e programar com modelos locais compatíveis com a API OpenAI. O projeto é desenvolvido no GitHub e o APK debug é compilado pelo GitHub Actions.
+Assistente Android para conversar e programar. O projeto é desenvolvido no GitHub e o APK debug é compilado pelo GitHub Actions.
 
-## Versão 0.10.0
-- Pesquisa ficheiros do projeto por nome ou extensão.
-- Seleciona todos os resultados visíveis ou limpa a seleção.
-- Mostra quantos bytes de ficheiros entraram no último contexto enviado.
-- Contexto de projeto até 8 MB, até 200 ficheiros; anexos e propostas até 2 MB por ficheiro.
-- As propostas continuam a ser mostradas em diff e exigem aprovação individual antes de gravar.
+## Versão 0.11.0
+- Gestor de modelos GGUF com três perfis: rápido/geral, programação e Auto Router.
+- Downloads com progresso, cancelamento, nova tentativa e remoção.
+- Os modelos ficam no armazenamento privado da app; por defeito, os downloads usam apenas Wi-Fi.
+- Contexto de projeto até 8 MB e 200 ficheiros; anexos e propostas até 2 MB por ficheiro.
 
-## Modelos locais
-Configura o endpoint e o nome de cada modelo em Definições. A app liga-se a um servidor compatível com OpenAI executado no telemóvel ou na rede local; não descarrega os modelos.
+## Instalar modelos
+Abre **Modelos** no cabeçalho e descarrega cada perfil. Os ficheiros são grandes; liga-te a Wi-Fi e deixa espaço livre. Os downloads são guardados separadamente dos modelos que já estejam noutra app, como Termux.
 
-O limite de 8 MB é o máximo de dados de ficheiro que a app pode ler por pedido. A janela de contexto efetiva depende do modelo e do servidor local. Seleciona os ficheiros relevantes para evitar exceder a capacidade do modelo.
+Nesta versão, o gestor instala os ficheiros GGUF. A geração de respostas continua a usar um servidor compatível com OpenAI configurado em **Definições**. A ligação do motor de inferência incorporado e o arranque automático dos modelos são o passo seguinte.
+
+O limite de 8 MB é a quantidade máxima de ficheiros que a app pode ler por pedido; a janela efetiva depende do modelo e do servidor.
 
 ## APK
-Cada versão incrementa versionCode e versionName. O workflow Android CI compila o APK debug quando há alterações na branch principal. Descarrega-o em Actions, na execução concluída, em Artifacts.
+Cada avanço incrementa versionCode e versionName. O workflow Android compila o APK debug na branch principal. Descarrega-o em Actions, na execução concluída, em Artifacts.

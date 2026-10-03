@@ -1,6 +1,6 @@
 # Roadmap
 
-## 0.1–0.6 — Base e modelos locais
+## 0.1–0.6 — Base e perfis locais
 - [x] Chat Android nativo e definições dos modelos.
 - [x] Perfis Rápido, Programar e Auto.
 - [x] Contexto de projeto selecionável e limites ampliados.
@@ -20,10 +20,16 @@
 ## 0.10.0 — Gestão de ficheiros
 - [x] Pesquisa por nome e extensão.
 - [x] Selecionar resultados e limpar seleção.
-- [x] Medição do tamanho real dos ficheiros no último contexto.
+- [x] Medição do tamanho real do contexto enviado.
+
+## 0.11.0 — Instalação dos modelos
+- [x] Catálogo GGUF para os perfis geral, programador e Auto Router.
+- [x] Downloads em armazenamento privado, com progresso, cancelamento e remoção.
+- [x] Opção para limitar os downloads a Wi-Fi.
 
 ## Próximos passos
-- [ ] Recuperar apenas os trechos relevantes para caber na janela do modelo.
+- [ ] Incorporar o motor llama.cpp e carregar automaticamente o perfil adequado ao abrir a app.
+- [ ] Trocar modelos em sequência para reduzir o uso de memória.
+- [ ] Recuperar apenas os trechos relevantes de projetos grandes.
 - [ ] Números de linha e contexto focado nos blocos alterados.
 - [ ] Criar e renomear ficheiros com aprovação explícita.
-- [ ] Melhorar cancelamento e feedback de pedidos longos.

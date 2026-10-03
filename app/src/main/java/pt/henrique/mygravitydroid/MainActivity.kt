@@ -1,6 +1,10 @@
 package pt.henrique.mygravitydroid
 
 import android.content.Context
+import android.app.DownloadManager
+import android.os.Environment
+import java.io.File
+import kotlinx.coroutines.delay
 import android.os.Bundle
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -84,6 +88,7 @@ private fun GravityApp(context: Context) {
     var showModeMenu by remember { mutableStateOf(false) }
     var apiKey by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
+    var showModelManager by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var attachedName by remember { mutableStateOf<String?>(null) }
@@ -162,7 +167,7 @@ private fun GravityApp(context: Context) {
                         Text("LOCAL AI STUDIO", fontSize = 10.sp, letterSpacing = 1.4.sp, color = Muted)
                     }
                 }
-                TextButton(onClick = { showSettings = true }) { Text("Definições", color = Accent) }
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) { TextButton(onClick = { showModelManager = true }) { Text("Modelos", color = Accent) }; TextButton(onClick = { showSettings = true }) { Text("Definições", color = Accent) } }
             }
 
             Row(
@@ -403,6 +408,7 @@ private fun GravityApp(context: Context) {
             )
         }
 
+        if (showModelManager) ModelManagerDialog(context = context, onDismiss = { showModelManager = false })
         if (showSettings) {
             SettingsDialog(
                 initialGeneralUrl = generalUrl, initialGeneralModel = generalModel,
@@ -611,6 +617,85 @@ private fun requestChat(baseUrl: String, model: String, apiKey: String, history:
     }
 }
 
+
+private data class LocalModel(val id:String,val name:String,val role:String,val fileName:String,val url:String)
+private data class ModelDownloadStatus(val exists:Boolean,val downloading:Boolean,val downloaded:Long=0L,val total:Long=-1L,val failed:Boolean=false)
+private val LOCAL_MODELS = listOf(
+ LocalModel("general_qwen3_17","Qwen3 1.7B · Q4_K_M","Rápido / geral","Qwen3-1.7B-Q4_K_M.gguf","https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf"),
+ LocalModel("coder_qwen25_15","Qwen2.5 Coder 1.5B · Q4_K_M","Programador","qwen2.5-coder-1.5b-instruct-q4_k_m.gguf","https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"),
+ LocalModel("router_qwen3_06","Qwen3 0.6B · Q4_0","Auto Router / planeador","Qwen3-0.6B-Q4_0.gguf","https://huggingface.co/ggml-org/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_0.gguf")
+)
+private fun modelFile(context:Context,model:LocalModel)=File(File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),"mygravity-models").apply{mkdirs()},model.fileName)
+
+@Composable
+private fun ModelManagerDialog(context:Context,onDismiss:()->Unit) {
+ val manager=remember{context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager}
+ val prefs=remember{context.getSharedPreferences("gravity_model_downloads",Context.MODE_PRIVATE)}
+ var states by remember{mutableStateOf<Map<String,ModelDownloadStatus>>(emptyMap())}
+ var wifiOnly by remember{mutableStateOf(prefs.getBoolean("wifi_only",true))}
+ var message by remember{mutableStateOf<String?>(null)}
+ fun refresh(){
+  val next=mutableMapOf<String,ModelDownloadStatus>()
+  LOCAL_MODELS.forEach{m->
+   val f=modelFile(context,m); val id=prefs.getLong("download_${m.id}",-1L)
+   if(f.exists()&&f.length()>0){next[m.id]=ModelDownloadStatus(true,false,f.length(),f.length());return@forEach}
+   if(id<0){next[m.id]=ModelDownloadStatus(false,false);return@forEach}
+   manager.query(DownloadManager.Query().setFilterById(id))?.use{c->
+    if(!c.moveToFirst()){next[m.id]=ModelDownloadStatus(false,false);return@use}
+    val status=c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+    val got=c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)).coerceAtLeast(0L)
+    val total=c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+    next[m.id]=ModelDownloadStatus(status==DownloadManager.STATUS_SUCCESSFUL&&f.exists()&&f.length()>0,
+     status==DownloadManager.STATUS_RUNNING||status==DownloadManager.STATUS_PENDING||status==DownloadManager.STATUS_PAUSED,
+     got,total,status==DownloadManager.STATUS_FAILED)
+   }?:run{next[m.id]=ModelDownloadStatus(false,false)}
+  }
+  states=next
+ }
+ LaunchedEffect(Unit){while(true){refresh();delay(900)}}
+ fun start(m:LocalModel){
+  try{
+   val f=modelFile(context,m);f.delete()
+   val req=DownloadManager.Request(Uri.parse(m.url)).setTitle(m.name)
+    .setDescription("A descarregar para o MyGravityDroid").setMimeType("application/octet-stream")
+    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)
+    .setAllowedOverMetered(!wifiOnly).setAllowedOverRoaming(false)
+    .setDestinationInExternalFilesDir(context,Environment.DIRECTORY_DOWNLOADS,"mygravity-models/${m.fileName}")
+   prefs.edit().putLong("download_${m.id}",manager.enqueue(req)).apply()
+   message="Download iniciado: ${m.name}";refresh()
+  }catch(e:Exception){message="Não foi possível iniciar: ${e.message?: "erro"}"}
+ }
+ AlertDialog(onDismissRequest=onDismiss,title={Text("Instalar modelos")},text={
+  Column(Modifier.fillMaxWidth().heightIn(max=520.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(12.dp)){
+   Text("Descarrega os modelos GGUF para o armazenamento privado da app. São ficheiros grandes; recomenda-se Wi-Fi. Esta instalação prepara-os para execução local.",color=Muted,fontSize=12.sp)
+   Row(verticalAlignment=Alignment.CenterVertically){Checkbox(wifiOnly,{wifiOnly=it;prefs.edit().putBoolean("wifi_only",it).apply()});Text("Descarregar apenas por Wi-Fi",color=Color.White,fontSize=13.sp)}
+   LOCAL_MODELS.forEach{m->
+    val st=states[m.id]?:ModelDownloadStatus(false,false)
+    Surface(color=Panel,shape=RoundedCornerShape(14.dp)){Column(Modifier.fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+     Text(m.role,color=Accent,fontSize=11.sp,fontWeight=FontWeight.SemiBold);Text(m.name,color=Color.White,fontSize=14.sp)
+     when{
+      st.exists->Text("Instalado · ${formatBytes(st.downloaded)}",color=Accent,fontSize=12.sp)
+      st.downloading->{LinearProgressIndicator(progress={if(st.total>0)(st.downloaded.toFloat()/st.total).coerceIn(0f,1f) else 0f},modifier=Modifier.fillMaxWidth(),color=Accent);Text(if(st.total>0)"${formatBytes(st.downloaded)} / ${formatBytes(st.total)}" else "${formatBytes(st.downloaded)} descarregados",color=Muted,fontSize=11.sp)}
+      st.failed->Text("Download falhou. Podes tentar novamente.",color=Color(0xFFFF8A80),fontSize=12.sp)
+      else->Text("Ainda não instalado",color=Muted,fontSize=12.sp)
+     }
+     Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
+      if(!st.exists&&!st.downloading)TextButton(onClick={start(m)}){Text(if(st.failed)"Tentar novamente" else "Descarregar",color=Accent)}
+      if(st.downloading)TextButton(onClick={val id=prefs.getLong("download_${m.id}",-1L);if(id>=0)manager.remove(id);modelFile(context,m).delete();prefs.edit().remove("download_${m.id}").apply();message="Download cancelado";refresh()}){Text("Cancelar",color=Color(0xFFFF8A80))}
+      if(st.exists)TextButton(onClick={val id=prefs.getLong("download_${m.id}",-1L);if(id>=0)manager.remove(id);modelFile(context,m).delete();prefs.edit().remove("download_${m.id}").apply();message="Modelo removido";refresh()}){Text("Remover",color=Color(0xFFFF8A80))}
+     }
+    }}
+   }
+   message?.let{Text(it,color=Muted,fontSize=11.sp)}
+  }
+ },confirmButton={TextButton(onClick=onDismiss){Text("Fechar")}})
+}
+
+private fun formatBytes(bytes: Long): String = when {
+    bytes < 1024 -> "$bytes B"
+    bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+    else -> "${bytes / (1024 * 1024)} MB"
+}
 
 private fun formatBytes(bytes: Int): String = when {
     bytes < 1024 -> "$bytes B"

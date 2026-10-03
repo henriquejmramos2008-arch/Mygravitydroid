@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.0
+- Adiciona o gestor de modelos GGUF para os perfis geral, programador e Auto Router.
+- Mostra progresso e permite cancelar, tentar novamente ou remover downloads.
+- Guarda os modelos na pasta privada da app e permite restringir downloads a Wi-Fi.
+
 ## 0.10.0
 - Pesquisa de ficheiros por nome/extensão na seleção do projeto.
 - Selecionar resultados visíveis e limpar seleção rapidamente.
