@@ -784,13 +784,14 @@ private fun TermuxSetupDialog(
             Column(Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Para a app iniciar o teu Qwen no Termux ao abrir, é necessária uma configuração única.", color = Color.White, fontSize = 13.sp)
                 Text("1. Copia o comando e executa-o no Termux para permitir chamadas externas.", color = Muted, fontSize = 12.sp)
-                Text("2. Toca em “Conceder permissão” e aceita o pedido do Android. A autorização permite ao MyGravityDroid executar o comando de arranque que configuraste no Termux.", color = Muted, fontSize = 12.sp)
+                Text("2. Toca em “Conceder permissão”. Se o Android não mostrar o pedido, abre as permissões do MyGravityDroid e ativa “Executar comandos no Termux” nas permissões adicionais.", color = Muted, fontSize = 12.sp)
                 Text("3. Volta aqui e toca em “Ativar e iniciar”. O MyGravityDroid verifica a porta 8080 e evita iniciar um segundo servidor se já houver um a responder.", color = Muted, fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                     TextButton(onClick = onCopyCommand) { Text("Copiar comando", color = Accent) }
                     TextButton(onClick = onOpenTermux) { Text("Abrir Termux", color = Accent) }
                 }
-                Text(if (permissionGranted) "Permissão RUN_COMMAND concedida · Estado: $status" else "A permissão RUN_COMMAND ainda não está concedida.", color = if (permissionGranted) Muted else Color(0xFFFFB4AB), fontSize = 11.sp)
+                TextButton(onClick = onOpenAppPermissions) { Text("Abrir permissões do MyGravityDroid", color = Accent) }
+                Text(if (permissionGranted) "Permissão RUN_COMMAND concedida · Estado: $status" else "Sem esta permissão, o Android bloqueia o arranque. Se a opção não existir, atualiza o Termux oficial.", color = if (permissionGranted) Muted else Color(0xFFFFB4AB), fontSize = 11.sp)
                 Text("A app inicia o Qwen3 1.7B existente em ~/llama.cpp/build-gpu. Mantém o Termux instalado e os ficheiros do modelo disponíveis.", color = Muted, fontSize = 11.sp)
             }
         },
