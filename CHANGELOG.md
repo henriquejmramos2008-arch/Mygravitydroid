@@ -1,7 +1,13 @@
 # Changelog
 
+## 0.12.0
+- Inicia o llama-server do Termux ao abrir a app e aguarda o endpoint de saúde.
+- Evita iniciar outro servidor quando a porta 8080 já responde.
+- Deteta o ID via `/v1/models` e sincroniza os três perfis.
+- Acrescenta configuração guiada para a permissão Termux RUN_COMMAND.
+
 ## 0.11.0
-- Adiciona o gestor de modelos GGUF para os perfis geral, programador e Auto Router.
+- Adiciona gestor de modelos GGUF para os perfis geral, programador e Auto Router.
 - Mostra progresso e permite cancelar, tentar novamente ou remover downloads.
 - Guarda os modelos na pasta privada da app e permite restringir downloads a Wi-Fi.
 

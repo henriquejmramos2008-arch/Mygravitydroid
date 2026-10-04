@@ -6,6 +6,7 @@ import android.os.Environment
 import java.io.File
 import kotlinx.coroutines.delay
 import android.os.Bundle
+import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.provider.DocumentsContract
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 private val Page = Color(0xFF101114)
 private val Panel = Color(0xFF1A1C21)
@@ -78,6 +80,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun GravityApp(context: Context) {
     val prefs = remember { context.getSharedPreferences("gravity_settings", Context.MODE_PRIVATE) }
+    if (!prefs.getBoolean("termux_profile_migrated", false)) {
+        prefs.edit().putString("general_url", "http://127.0.0.1:8080/v1").putString("coder_url", "http://127.0.0.1:8080/v1").putString("planner_url", "http://127.0.0.1:8080/v1").putString("general_model", "mygravity-local").putString("coder_model", "mygravity-local").putString("planner_model", "mygravity-local").putBoolean("termux_profile_migrated", true).apply()
+    }
     var generalUrl by remember { mutableStateOf(prefs.getString("general_url", "http://127.0.0.1:8080/v1") ?: "") }
     var generalModel by remember { mutableStateOf(prefs.getString("general_model", "Qwen3-1.7B") ?: "") }
     var coderUrl by remember { mutableStateOf(prefs.getString("coder_url", "http://127.0.0.1:8080/v1") ?: "") }
@@ -89,6 +94,10 @@ private fun GravityApp(context: Context) {
     var apiKey by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
     var showModelManager by remember { mutableStateOf(false) }
+    var termuxSetupComplete by remember { mutableStateOf(prefs.getBoolean("termux_setup_complete", false)) }
+    var showTermuxSetup by remember { mutableStateOf(!termuxSetupComplete) }
+    var serverReady by remember { mutableStateOf(false) }
+    var serverStatus by remember { mutableStateOf(if (termuxSetupComplete) "A INICIAR LLAMA" else "ATIVA TERMUX") }
     var draft by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
     var attachedName by remember { mutableStateOf<String?>(null) }
@@ -147,6 +156,40 @@ private fun GravityApp(context: Context) {
         }
     }
 
+    LaunchedEffect(termuxSetupComplete) {
+        serverReady = false
+        if (termuxSetupComplete) {
+            serverStatus = "A INICIAR LLAMA"
+            try {
+                startTermuxLlamaServer(context)
+                serverStatus = "A CARREGAR QWEN"
+                val ready = withTimeoutOrNull(120_000L) {
+                    var found = false
+                    while (!found) {
+                        found = withContext(Dispatchers.IO) { isLlamaServerReady() }
+                        if (!found) delay(1000)
+                    }
+                    found
+                } ?: false
+                serverReady = ready
+                if (ready) {
+                    val servedModel = withContext(Dispatchers.IO) { getLlamaModelId() }
+                    if (!servedModel.isNullOrBlank()) {
+                        generalModel = servedModel
+                        coderModel = servedModel
+                        plannerModel = servedModel
+                        prefs.edit().putString("general_model", servedModel).putString("coder_model", servedModel).putString("planner_model", servedModel).apply()
+                    }
+                } else showTermuxSetup = true
+                serverStatus = if (ready) "LLAMA ONLINE" else "LLAMA OFFLINE"
+            } catch (e: Exception) {
+                serverReady = false
+                serverStatus = if (!isTermuxInstalled(context)) "INSTALA TERMUX" else "ATIVA TERMUX"
+                showTermuxSetup = true
+            }
+        }
+    }
+
     MaterialTheme(colorScheme = darkColorScheme(primary = Accent, onPrimary = Color(0xFF17200C), background = Page, surface = Panel, onSurface = Color(0xFFF1F1F3))) {
         Column(
             modifier = Modifier.fillMaxSize().background(Page)
@@ -200,10 +243,10 @@ private fun GravityApp(context: Context) {
                     if (assistantMode == "fast") generalModel else plannerModel + " → " + coderModel,
                     color = Muted, fontSize = 10.sp, maxLines = 1
                 )
-                Text(
-                    if (loading) "A TRABALHAR" else if (proposalMode) "REVISÃO ATIVA" else "MODELOS LOCAIS",
-                    color = if (loading) Accent else Muted.copy(alpha = 0.8f), fontSize = 9.sp, letterSpacing = 1.sp
-                )
+                TextButton(onClick = { showTermuxSetup = true }) {
+                    Text(if (loading) "A TRABALHAR" else if (proposalMode) "REVISÃO ATIVA" else serverStatus,
+                        color = if (loading) Accent else Muted.copy(alpha = 0.8f), fontSize = 9.sp, letterSpacing = 1.sp)
+                }
             }
             if (messages.isEmpty()) {
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -292,7 +335,7 @@ private fun GravityApp(context: Context) {
                     shape = RoundedCornerShape(22.dp), maxLines = 5,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send, keyboardType = KeyboardType.Text),
                     keyboardActions = KeyboardActions(onSend = {
-                        if (!loading) sendMessage(
+                        if (!loading && serverReady) sendMessage(
                             assistantMode, generalUrl, generalModel, coderUrl, coderModel, plannerUrl, plannerModel, apiKey, draft, attachedName, attachedContent, projectFiles.filter { it.uri.toString() in selectedProjectUris }, proposalMode, context, messages,
                             { draft = ""; attachedName = null; attachedContent = null },
                             { loading = it }, { edits -> pendingEdits = edits; pendingEditIndex = 0 }, { lastContextBytes = it }, scope
@@ -305,7 +348,7 @@ private fun GravityApp(context: Context) {
                             { draft = ""; attachedName = null; attachedContent = null },
                             { loading = it }, { edits -> pendingEdits = edits; pendingEditIndex = 0 }, { lastContextBytes = it }, scope
                         ) },
-                    enabled = !loading && draft.isNotBlank(), shape = CircleShape, modifier = Modifier.padding(bottom = 5.dp)
+                    enabled = !loading && draft.isNotBlank() && serverReady, shape = CircleShape, modifier = Modifier.padding(bottom = 5.dp)
                 ) { Text("↑", fontSize = 20.sp) }
             }
         }
@@ -409,6 +452,31 @@ private fun GravityApp(context: Context) {
         }
 
         if (showModelManager) ModelManagerDialog(context = context, onDismiss = { showModelManager = false })
+
+        if (showTermuxSetup) TermuxSetupDialog(
+            context = context,
+            permissionGranted = hasTermuxRunPermission(context),
+            status = serverStatus,
+            onOpenTermux = {
+                context.packageManager.getLaunchIntentForPackage("com.termux")?.let { context.startActivity(it) }
+            },
+            onOpenAppPermissions = {
+                context.startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
+            },
+            onCopyCommand = {
+                val command = "mkdir -p ~/.termux; if grep -q '^[[:space:]]*allow-external-apps' ~/.termux/termux.properties 2>/dev/null; then sed -i 's/^[[:space:]]*allow-external-apps.*/allow-external-apps = true/' ~/.termux/termux.properties; else echo 'allow-external-apps = true' >> ~/.termux/termux.properties; fi; termux-reload-settings"
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Termux RUN_COMMAND setup", command))
+            },
+            onConfirm = {
+                if (hasTermuxRunPermission(context) && isTermuxInstalled(context)) {
+                    prefs.edit().putBoolean("termux_setup_complete", true).apply()
+                    termuxSetupComplete = true
+                    showTermuxSetup = false
+                } else serverStatus = if (!isTermuxInstalled(context)) "INSTALA TERMUX" else "ATIVA PERMISSÃO"
+            },
+            onDismiss = { showTermuxSetup = false }
+        )
         if (showSettings) {
             SettingsDialog(
                 initialGeneralUrl = generalUrl, initialGeneralModel = generalModel,
@@ -617,6 +685,109 @@ private fun requestChat(baseUrl: String, model: String, apiKey: String, history:
     }
 }
 
+
+
+private const val TERMUX_PACKAGE = "com.termux"
+private const val TERMUX_RUN_PERMISSION = "com.termux.permission.RUN_COMMAND"
+private const val MYGRAVITY_SERVER_URL = "http://127.0.0.1:8080/v1"
+private const val TERMUX_HOME = "/data/data/com.termux/files/home"
+private const val TERMUX_BASH = "/data/data/com.termux/files/usr/bin/bash"
+
+private fun hasTermuxRunPermission(context: Context): Boolean =
+    context.checkSelfPermission(TERMUX_RUN_PERMISSION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+@Suppress("DEPRECATION")
+private fun isTermuxInstalled(context: Context): Boolean =
+    runCatching { context.packageManager.getPackageInfo(TERMUX_PACKAGE, 0) }.isSuccess
+
+private fun startTermuxLlamaServer(context: Context) {
+    check(isTermuxInstalled(context)) { "Instala o Termux para arrancar o llama-server." }
+    check(hasTermuxRunPermission(context)) { "Concede ao MyGravityDroid a permissão para executar comandos no Termux." }
+
+    val command = """
+        if (echo > /dev/tcp/127.0.0.1/8080) >/dev/null 2>&1; then exit 0; fi
+        cd "$TERMUX_HOME/llama.cpp" || exit 20
+        export LD_LIBRARY_PATH="$TERMUX_HOME/llama.cpp/build-gpu/bin"
+        export LD_PRELOAD=/system/lib64/liblzma.so
+        exec ./build-gpu/bin/llama-server -hf ggml-org/Qwen3-1.7B-GGUF:Q4_K_M --alias mygravity-local --host 127.0.0.1 --port 8080 --reasoning off -c 1024 -ngl 99 --parallel 1 --threads 4
+    """.trimIndent().replace("\n", "; ")
+
+    val intent = Intent().apply {
+        setClassName(TERMUX_PACKAGE, "com.termux.app.RunCommandService")
+        action = "com.termux.RUN_COMMAND"
+        putExtra("com.termux.RUN_COMMAND_PATH", TERMUX_BASH)
+        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-lc", command))
+        putExtra("com.termux.RUN_COMMAND_WORKDIR", TERMUX_HOME)
+        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+    }
+    context.startService(intent)
+}
+
+private fun getLlamaModelId(): String? {
+    val connection = (URL("http://127.0.0.1:8080/v1/models").openConnection() as HttpURLConnection).apply {
+        requestMethod = "GET"
+        connectTimeout = 2500
+        readTimeout = 2500
+    }
+    return try {
+        if (connection.responseCode !in 200..299) return null
+        JSONObject(connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
+            .optJSONArray("data")?.optJSONObject(0)?.optString("id")?.takeIf { it.isNotBlank() }
+    } catch (_: Exception) {
+        null
+    } finally {
+        connection.disconnect()
+    }
+}
+
+private fun isLlamaServerReady(): Boolean {
+    val connection = (URL("http://127.0.0.1:8080/health").openConnection() as HttpURLConnection).apply {
+        requestMethod = "GET"
+        connectTimeout = 1500
+        readTimeout = 1500
+    }
+    return try {
+        connection.responseCode in 200..299
+    } catch (_: Exception) {
+        false
+    } finally {
+        connection.disconnect()
+    }
+}
+
+@Composable
+private fun TermuxSetupDialog(
+    context: Context,
+    permissionGranted: Boolean,
+    status: String,
+    onOpenTermux: () -> Unit,
+    onOpenAppPermissions: () -> Unit,
+    onCopyCommand: () -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Arranque automático do llama-server") },
+        text = {
+            Column(Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Para a app iniciar o teu Qwen no Termux ao abrir, é necessária uma configuração única.", color = Color.White, fontSize = 13.sp)
+                Text("1. Copia o comando e executa-o no Termux para permitir chamadas externas.", color = Muted, fontSize = 12.sp)
+                Text("2. Nas permissões do MyGravityDroid, concede “Executar comandos no Termux”. Esta permissão permite executar comandos no Termux; ativa-a apenas se confias nesta integração.", color = Muted, fontSize = 12.sp)
+                Text("3. Volta aqui e toca em “Ativar e iniciar”. O MyGravityDroid verifica a porta 8080 e evita iniciar um segundo servidor se já houver um a responder.", color = Muted, fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = onCopyCommand) { Text("Copiar comando", color = Accent) }
+                    TextButton(onClick = onOpenTermux) { Text("Abrir Termux", color = Accent) }
+                }
+                TextButton(onClick = onOpenAppPermissions) { Text("Abrir permissões da app", color = Accent) }
+                Text(if (permissionGranted) "Permissão RUN_COMMAND concedida · Estado: $status" else "A permissão RUN_COMMAND ainda não está concedida.", color = if (permissionGranted) Muted else Color(0xFFFFB4AB), fontSize = 11.sp)
+                Text("A app inicia o Qwen3 1.7B existente em ~/llama.cpp/build-gpu. Mantém o Termux instalado e os ficheiros do modelo disponíveis.", color = Muted, fontSize = 11.sp)
+            }
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Ativar e iniciar", color = Accent) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Fechar", color = Muted) } }
+    )
+}
 
 private data class LocalModel(val id:String,val name:String,val role:String,val fileName:String,val url:String)
 private data class ModelDownloadStatus(val exists:Boolean,val downloading:Boolean,val downloaded:Long=0L,val total:Long=-1L,val failed:Boolean=false)

@@ -27,8 +27,13 @@
 - [x] Downloads em armazenamento privado, com progresso, cancelamento e remoção.
 - [x] Opção para limitar os downloads a Wi-Fi.
 
+## 0.12.0 — Arranque do llama-server
+- [x] Chamar o serviço RUN_COMMAND do Termux com consentimento explícito.
+- [x] Iniciar o Qwen3 1.7B se o servidor local não responder.
+- [x] Verificar a saúde do servidor e descobrir automaticamente o ID servido.
+
 ## Próximos passos
-- [ ] Incorporar o motor llama.cpp e carregar automaticamente o perfil adequado ao abrir a app.
+- [ ] Tornar o motor nativo independente do Termux e gerir os GGUF descarregados no gestor da app.
 - [ ] Trocar modelos em sequência para reduzir o uso de memória.
 - [ ] Recuperar apenas os trechos relevantes de projetos grandes.
 - [ ] Números de linha e contexto focado nos blocos alterados.
