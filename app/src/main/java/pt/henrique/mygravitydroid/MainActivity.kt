@@ -116,6 +116,15 @@ private fun GravityApp(context: Context) {
     val messages = remember { mutableStateListOf<ChatMessage>() }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val termuxRunPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && isTermuxInstalled(context)) {
+            prefs.edit().putBoolean("termux_setup_complete", true).apply()
+            termuxSetupComplete = true
+            showTermuxSetup = false
+        } else {
+            serverStatus = if (!isTermuxInstalled(context)) "INSTALA TERMUX" else "ATIVA PERMISSÃO"
+        }
+    }
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
         if (uri != null) {
             projectStatus = "A analisar pasta…"
@@ -473,7 +482,9 @@ private fun GravityApp(context: Context) {
                     prefs.edit().putBoolean("termux_setup_complete", true).apply()
                     termuxSetupComplete = true
                     showTermuxSetup = false
-                } else serverStatus = if (!isTermuxInstalled(context)) "INSTALA TERMUX" else "ATIVA PERMISSÃO"
+                } else if (!hasTermuxRunPermission(context)) {
+                    termuxRunPermissionLauncher.launch("com.termux.permission.RUN_COMMAND")
+                } else serverStatus = "INSTALA TERMUX"
             },
             onDismiss = { showTermuxSetup = false }
         )
@@ -773,18 +784,17 @@ private fun TermuxSetupDialog(
             Column(Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Para a app iniciar o teu Qwen no Termux ao abrir, é necessária uma configuração única.", color = Color.White, fontSize = 13.sp)
                 Text("1. Copia o comando e executa-o no Termux para permitir chamadas externas.", color = Muted, fontSize = 12.sp)
-                Text("2. Nas permissões do MyGravityDroid, concede “Executar comandos no Termux”. Esta permissão permite executar comandos no Termux; ativa-a apenas se confias nesta integração.", color = Muted, fontSize = 12.sp)
+                Text("2. Toca em “Conceder permissão” e aceita o pedido do Android. A autorização permite ao MyGravityDroid executar o comando de arranque que configuraste no Termux.", color = Muted, fontSize = 12.sp)
                 Text("3. Volta aqui e toca em “Ativar e iniciar”. O MyGravityDroid verifica a porta 8080 e evita iniciar um segundo servidor se já houver um a responder.", color = Muted, fontSize = 12.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     TextButton(onClick = onCopyCommand) { Text("Copiar comando", color = Accent) }
                     TextButton(onClick = onOpenTermux) { Text("Abrir Termux", color = Accent) }
                 }
-                TextButton(onClick = onOpenAppPermissions) { Text("Abrir permissões da app", color = Accent) }
                 Text(if (permissionGranted) "Permissão RUN_COMMAND concedida · Estado: $status" else "A permissão RUN_COMMAND ainda não está concedida.", color = if (permissionGranted) Muted else Color(0xFFFFB4AB), fontSize = 11.sp)
                 Text("A app inicia o Qwen3 1.7B existente em ~/llama.cpp/build-gpu. Mantém o Termux instalado e os ficheiros do modelo disponíveis.", color = Muted, fontSize = 11.sp)
             }
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Ativar e iniciar", color = Accent) } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(if (permissionGranted) "Ativar e iniciar" else "Conceder permissão", color = Accent) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Fechar", color = Muted) } }
     )
 }
