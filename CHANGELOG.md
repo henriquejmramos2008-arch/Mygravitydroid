@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.0
+- Inicia o llama-server em modo router com três modelos GGUF distintos e até dois carregados em simultâneo.
+- O gestor Modelos consulta o router do Termux e permite preparar os modelos no respetivo cache.
+- Deixa de copiar o ID do único modelo para os três perfis e migra as configurações da versão anterior.
+- Corrige a instrução do assistente sobre leitura de ficheiros e documenta o primeiro carregamento.
+
 ## 0.12.0
 - Inicia o llama-server do Termux ao abrir a app e aguarda o endpoint de saúde.
 - Evita iniciar outro servidor quando a porta 8080 já responde.
