@@ -642,7 +642,8 @@ private fun sendMessage(
             }
             val omittedFiles = rankedFiles.size - includedFiles.size
             val displayNames = projectContents.take(5).joinToString { it.first }
-            val displayText = (if (displayNames.isNotBlank()) "$text\n\n📎 $displayNames" else text) +\n                if (partialFiles > 0 || omittedFiles > 0) "\nContexto parcial: $partialFiles excerto(s), $omittedFiles ficheiro(s) omitidos." else ""
+            val displayText = (if (displayNames.isNotBlank()) "$text\n\n📎 $displayNames" else text) +
+                if (partialFiles > 0 || omittedFiles > 0) "\nContexto parcial: $partialFiles excerto(s), $omittedFiles ficheiro(s) omitidos." else ""
             val promptContent = buildString {
                 append(text)
                 includedFiles.forEach { (name, content) ->
