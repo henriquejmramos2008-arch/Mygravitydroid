@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.0
+- Permite repetir o arranque do router depois de uma falha sem reiniciar a app.
+- Aumenta o contexto do servidor para 4096 tokens e o tempo de espera do pedido para 180 s.
+- Usa excertos de ficheiros priorizados pelo nome na pergunta e assinala os dados omitidos.
+- Impede propostas de alteração integral quando o conteúdo selecionado não cabe no contexto.
+- Reduz o histórico enviado ao Auto Router e mostra progresso/falhas de modelos no gestor.
+
 ## 0.15.0
 - Inicia o llama-server em modo router com três modelos GGUF distintos e até dois carregados em simultâneo.
 - O gestor Modelos consulta o router do Termux e permite preparar os modelos no respetivo cache.

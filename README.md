@@ -2,6 +2,14 @@
 
 Assistente Android de IA local para conversar e programar. A app liga-se ao `llama-server` no Termux F-Droid. O APK debug é compilado pelo GitHub Actions.
 
+## Versão 0.16.0 — Contexto e carregamento mais claros
+
+- Aumenta a janela de contexto do servidor de 1024 para 4096 tokens por modelo.
+- Continua a ler projetos até 8 MB, mas envia excertos limitados por pedido para caber na janela local. Ficheiros mencionados na pergunta têm prioridade; a conversa identifica os ficheiros parciais ou omitidos.
+- Para propostas de edição integral, exige que os ficheiros selecionados caibam por completo no pedido; uma edição baseada num excerto truncado não é aplicada.
+- O Auto Router recebe apenas a pergunta e os nomes dos ficheiros. O programador recebe os excertos relevantes e um histórico curto, reduzindo atrasos e erros de contexto.
+- Mostra o progresso de download/carga do router e permite tentar novamente o arranque após um erro.
+
 ## Versão 0.15.0 — Três modelos locais
 
 | Perfil | Modelo GGUF | Utilização |
@@ -23,7 +31,7 @@ A permissão permite executar comandos dentro do Termux. A app inicia um comando
 
 ## Projetos
 
-A app pode ler até 8 MB de contexto e 200 ficheiros por projeto; anexos e propostas de edição têm limite de 2 MB por ficheiro. O contexto do servidor é 1024 tokens por modelo na configuração atual; projetos grandes exigem seleção criteriosa dos ficheiros. As edições são apresentadas para aprovação antes de serem gravadas.
+A app pode ler até 8 MB de contexto e 200 ficheiros por projeto; anexos e propostas de edição têm limite de 2 MB por ficheiro. O contexto do servidor é 4096 tokens por modelo. Projetos grandes exigem seleção dos ficheiros relevantes; a app mostra quando só enviou excertos. Propostas de edição integral têm um limite de 3500 caracteres de conteúdo selecionado, para não sugerir alterações com base em ficheiros truncados. As edições são apresentadas para aprovação antes de serem gravadas.
 
 ## APK
 
