@@ -1,0 +1,24 @@
+name: Nexus Server Validation
+on:
+  push:
+    branches: [nexus-android-bridge-build]
+    paths:
+      - 'nexus-android-server/**'
+      - '.github/workflows/nexus-server-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: nexus-android-server
+        run: npm install --no-audit --no-fund
+      - name: Validate syntax
+        working-directory: nexus-android-server
+        run: node --check api/index.js
