@@ -1,0 +1,12 @@
+{
+  "name": "nexus-android-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vercel/blob": "^1.0.0"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}
