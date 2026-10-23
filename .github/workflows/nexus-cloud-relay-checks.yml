@@ -51,6 +51,22 @@ jobs:
             if(!ack.ok)throw Error('ack missing');
             const done=await req('/operator/result/'+x.id,o);
             if(!done.done||!done.ok||done.result!=='Android 9; FIG-LX1')throw Error('wrong result');
-            console.log('PASS: auth, allowlist, status job, result');
+
+            const rpc=async(token,payload)=>{
+              const r=await fetch(base+'/mcp',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json','accept':'application/json, text/event-stream'},body:JSON.stringify(payload)});
+              return {status:r.status,data:await r.json()};
+            };
+            const init=await rpc(o,{jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'test',version:'1'}}});
+            if(init.status!==200||init.data.result?.serverInfo?.name!=='nexus-android-lab')throw Error('mcp init');
+            const unauth=await rpc('bad-token',{jsonrpc:'2.0',id:2,method:'tools/list'});
+            if(unauth.status!==401)throw Error('mcp auth');
+            const list=await rpc(o,{jsonrpc:'2.0',id:3,method:'tools/list'});
+            if(list.status!==200||list.data.result?.tools?.length!==2)throw Error('mcp tool list');
+            const alive=await rpc(o,{jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'nexus_connection',arguments:{}}});
+            if(alive.data.result?.content?.[0]?.type!=='text')throw Error('mcp connection');
+            const unknown=await rpc(o,{jsonrpc:'2.0',id:5,method:'tools/call',params:{name:'tap',arguments:{}}});
+            if(unknown.data.error?.code!==-32602)throw Error('mcp unexpected write tool');
+            console.log('PASS: auth, allowlist, status job, result, MCP init, list, read-only');
+
           })().catch(e=>{console.error(e);process.exitCode=1});
           NODE
