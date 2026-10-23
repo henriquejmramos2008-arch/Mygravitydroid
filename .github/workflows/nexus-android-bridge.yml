@@ -3,7 +3,9 @@ on:
   push:
     branches: [nexus-android-bridge-build]
     paths:
-      - 'nexus-android-bridge/**'
+      - 'nexus-android-bridge/android/**'
+      - 'nexus-android-bridge/build.gradle.kts'
+      - 'nexus-android-bridge/settings.gradle.kts'
       - '.github/workflows/nexus-android-bridge.yml'
   workflow_dispatch:
 jobs:
@@ -33,6 +35,6 @@ jobs:
           sha256sum nexus-android-bridge/android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: Nexus-Android-Bridge-0.1-debug-apk
+          name: Nexus-USB-Lab-0.2-debug-apk
           path: nexus-android-bridge/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
