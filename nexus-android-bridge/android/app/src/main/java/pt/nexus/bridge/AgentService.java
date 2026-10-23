@@ -12,7 +12,10 @@ public final class AgentService extends Service {
  @Override public int onStartCommand(Intent intent,int flags,int startId){
   if(intent==null)return START_NOT_STICKY;
   String endpoint=intent.getStringExtra("endpoint"),token=intent.getStringExtra("token");
-  if(endpoint==null||!endpoint.startsWith("https://")||token==null||token.length()<32)return START_NOT_STICKY;
+  boolean allowed=BuildConfig.DEBUG
+   ?MainActivity.TEST_ENDPOINT.equals(endpoint)&&MainActivity.TEST_TOKEN.equals(token)
+   :endpoint!=null&&endpoint.startsWith("https://")&&token!=null&&token.length()>=32;
+  if(!allowed){stopSelf();return START_NOT_STICKY;}
   startForeground(NOTIFY_ID,notice());
   running=false;if(worker!=null)worker.interrupt();running=true;
   worker=new Thread(()->loop(endpoint,token),"nexus-poll");worker.start();return START_NOT_STICKY;
@@ -21,7 +24,7 @@ public final class AgentService extends Service {
   NotificationManager mgr=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
   mgr.createNotificationChannel(new NotificationChannel("remote_agent","Nexus Remote Control",NotificationManager.IMPORTANCE_LOW));
   PendingIntent pi=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT);
-  return new Notification.Builder(this,"remote_agent").setSmallIcon(android.R.drawable.stat_sys_upload).setContentTitle("Nexus Agent ativo").setContentText("Abre para parar o controlo remoto").setContentIntent(pi).setOngoing(true).build();
+  return new Notification.Builder(this,"remote_agent").setSmallIcon(android.R.drawable.stat_sys_upload).setContentTitle(BuildConfig.DEBUG?"Nexus USB test ativo":"Nexus Agent ativo").setContentText("Abre a aplicacao para parar").setContentIntent(pi).setOngoing(true).build();
  }
  private void loop(String endpoint,String token){
   while(running){
@@ -31,7 +34,7 @@ public final class AgentService extends Service {
      String id=job.optString("id"),cmd=job.optString("command");
      boolean ok=false;String result="";
      if(cmd.equals("status")){ok=true;result="Android "+Build.VERSION.RELEASE+"; "+Build.MODEL;}
-     else if(cmd.equals("back")||cmd.equals("home")||cmd.equals("tap")||cmd.equals("swipe")){
+     else if(!BuildConfig.DEBUG&&(cmd.equals("back")||cmd.equals("home")||cmd.equals("tap")||cmd.equals("swipe"))){
       ok=ControlAccessibilityService.action(cmd,job.optInt("x"),job.optInt("y"),job.optInt("x2"),job.optInt("y2"));
       result=ok?"executed":"Accessibility disabled or gesture failed";
      }else result="unsupported command";
@@ -39,7 +42,7 @@ public final class AgentService extends Service {
      request(endpoint+"/device/result","POST",token,response);
     }
     Thread.sleep(2500);
-   }catch(Exception e){try{Thread.sleep(7000);}catch(InterruptedException ignored){break;}}
+   }catch(Exception e){android.util.Log.w("NexusUSB", "Connection failed: "+e.getClass().getSimpleName());try{Thread.sleep(7000);}catch(InterruptedException ignored){break;}}
   }
  }
  private JSONObject request(String target,String method,String token,JSONObject payload)throws Exception {
