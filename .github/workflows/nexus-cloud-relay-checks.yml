@@ -1,0 +1,56 @@
+name: Nexus Cloud Relay Checks
+on:
+  push:
+    branches: [nexus-android-bridge-build]
+    paths:
+      - 'nexus-android-cloud/**'
+      - '.github/workflows/nexus-cloud-relay-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check server syntax
+        run: node --check nexus-android-cloud/server.cjs
+      - name: Test authentication and status-only API
+        env:
+          DEVICE_TOKEN: localtest_device_key_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
+          OPERATOR_TOKEN: localtest_operator_key_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
+          PORT: 8765
+        run: |
+          set -euo pipefail
+          node nexus-android-cloud/server.cjs > /tmp/nexuscloud.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in {1..25}; do
+            if curl -fsS http://127.0.0.1:8765/health >/dev/null; then break; fi
+            sleep 0.2
+          done
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8765/device/next)" = "401" ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer localtest_device_key_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456' http://127.0.0.1:8765/device/next)" = "200" ]
+          [ "$(curl -s -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer localtest_operator_key_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456' -H 'Content-Type: application/json' -d '{"command":"tap","x":123,"y":234}' http://127.0.0.1:8765/operator/enqueue)" = "400" ]
+          node - <<'NODE'
+          (async()=>{
+            const base='http://127.0.0.1:8765';
+            const d='localtest_device_key_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456',o='localtest_operator_key_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456';
+            async function req(path,token,method='GET',body){
+              const r=await fetch(base+path,{method,headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:body?JSON.stringify(body):undefined});
+              if(!r.ok)throw Error(path+': '+r.status);return r.json();
+            }
+            const x=await req('/operator/enqueue',o,'POST',{command:'status'});
+            if(!x.queued)throw Error('not queued');
+            const job=await req('/device/next',d);
+            if(!job.has_job||job.id!==x.id||job.command!=='status')throw Error('wrong job');
+            const ack=await req('/device/result',d,'POST',{id:x.id,ok:true,result:'Android 9; FIG-LX1'});
+            if(!ack.ok)throw Error('ack missing');
+            const done=await req('/operator/result/'+x.id,o);
+            if(!done.done||!done.ok||done.result!=='Android 9; FIG-LX1')throw Error('wrong result');
+            console.log('PASS: auth, allowlist, status job, result');
+          })().catch(e=>{console.error(e);process.exitCode=1});
+          NODE
